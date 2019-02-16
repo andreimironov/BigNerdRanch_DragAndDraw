@@ -4,6 +4,8 @@ import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.graphics.PointF;
+import android.os.Bundle;
+import android.os.Parcelable;
 import android.util.AttributeSet;
 import android.util.Log;
 import android.view.MotionEvent;
@@ -12,8 +14,13 @@ import android.view.View;
 import java.util.ArrayList;
 import java.util.List;
 
+import androidx.annotation.Nullable;
+
 public class BoxDrawingView extends View {
     private static final String TAG = "BoxDrawingView";
+    private static final String KEY_SUPER_STATE = "super state";
+    private static final String KEY_CURRENT_BOX = "current box";
+    private static final String KEY_BOXES = "boxes";
     private Box mCurrentBox;
     private List<Box> mBoxen = new ArrayList<>();
     private Paint mBoxPaint;
@@ -76,5 +83,23 @@ public class BoxDrawingView extends View {
             float bottom = Math.max(box.getOrigin().y, box.getCurrent().y);
             canvas.drawRect(left, top, right, bottom, mBoxPaint);
         }
+    }
+
+    @Nullable
+    @Override
+    protected Parcelable onSaveInstanceState() {
+        Bundle outState = new Bundle();
+        outState.putParcelable(KEY_SUPER_STATE, super.onSaveInstanceState());
+        outState.putParcelable(KEY_CURRENT_BOX, mCurrentBox);
+        outState.putParcelableArrayList(KEY_BOXES, (ArrayList<? extends Parcelable>) mBoxen);
+        return outState;
+    }
+
+    @Override
+    protected void onRestoreInstanceState(Parcelable state) {
+        Bundle inState = (Bundle) state;
+        super.onRestoreInstanceState(inState.getParcelable(KEY_SUPER_STATE));
+        mCurrentBox = inState.getParcelable(KEY_CURRENT_BOX);
+        mBoxen = inState.getParcelableArrayList(KEY_BOXES);
     }
 }
