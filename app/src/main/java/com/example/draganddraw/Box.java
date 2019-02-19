@@ -7,10 +7,40 @@ import android.os.Parcelable;
 public class Box implements Parcelable {
     private PointF mOrigin;
     private PointF mCurrent;
+    private double mAngle = 0;
+    private boolean isAngleSet = false;
 
     public Box(PointF origin) {
         mOrigin = origin;
         mCurrent = origin;
+    }
+
+    public void setAngle(double angle) {
+        mAngle = angle;
+    }
+
+    public double getAngle() {
+        return mAngle;
+    }
+
+    public boolean isAngleSet() {
+        return isAngleSet;
+    }
+
+    public void setAngleSet(boolean angleSet) {
+        this.isAngleSet = angleSet;
+    }
+
+    public PointF getCurrent() {
+        return mCurrent;
+    }
+
+    public void setCurrent(PointF current) {
+        mCurrent = current;
+    }
+
+    public PointF getOrigin() {
+        return mOrigin;
     }
 
     protected Box(Parcel in) {
@@ -29,18 +59,6 @@ public class Box implements Parcelable {
             return new Box[size];
         }
     };
-
-    public PointF getCurrent() {
-        return mCurrent;
-    }
-
-    public void setCurrent(PointF current) {
-        mCurrent = current;
-    }
-
-    public PointF getOrigin() {
-        return mOrigin;
-    }
 
     @Override
     public int describeContents() {

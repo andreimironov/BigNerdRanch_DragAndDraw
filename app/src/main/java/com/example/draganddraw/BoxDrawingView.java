@@ -22,9 +22,10 @@ public class BoxDrawingView extends View {
     private static final String KEY_CURRENT_BOX = "current box";
     private static final String KEY_BOXES = "boxes";
     private Box mCurrentBox;
-    private List<Box> mBoxen = new ArrayList<>();
+    private List<Box> mBoxes = new ArrayList<>();
     private Paint mBoxPaint;
     private Paint mBackgroundPaint;
+    private int mFirstId = -1;
 
     // Used when creating the view in code
     public BoxDrawingView(Context context) {
@@ -44,31 +45,54 @@ public class BoxDrawingView extends View {
 
     @Override
     public boolean onTouchEvent(MotionEvent event) {
-        PointF current = new PointF(event.getX(), event.getY());
-        String action = "";
-        switch (event.getAction()) {
+        int pointerCount = event.getPointerCount();
+        if (pointerCount > 2 || (mCurrentBox != null && mCurrentBox.isAngleSet())) {
+            return true;
+        }
+        PointF current;
+        int actionMasked = event.getActionMasked();
+        switch (actionMasked) {
             case MotionEvent.ACTION_DOWN:
-                action = "ACTION_DOWN";
-                // Reset drawing state
+                int pointerIndex = event.getActionIndex();
+                current = new PointF(event.getX(pointerIndex), event.getY(pointerIndex));
+                mFirstId = event.getPointerId(pointerIndex);
                 mCurrentBox = new Box(current);
-                mBoxen.add(mCurrentBox);
+                mBoxes.add(mCurrentBox);
                 break;
             case MotionEvent.ACTION_MOVE:
-                action = "ACTION_MOVE";
-                if (mCurrentBox != null) {
-                    mCurrentBox.setCurrent(current);
-                    invalidate();
+                if (mCurrentBox == null) {
+                    return true;
+                }
+                for (int index = 0; index < pointerCount; index++) {
+                    int id = event.getPointerId(index);
+                    current = new PointF(event.getX(index), event.getY(index));
+                    if (id == mFirstId) {
+                        mCurrentBox.setCurrent(current);
+                        invalidate();
+                    } else {
+                        double height = Math.abs(current.y - mCurrentBox.getOrigin().y);
+                        double hypLength = Math.hypot(
+                                current.x - mCurrentBox.getOrigin().x,
+                                current.y - mCurrentBox.getOrigin().y
+                        );
+                        double angle = 180 * Math.asin(height / hypLength) / Math.PI;
+                        mCurrentBox.setAngle(angle);
+                        invalidate();
+                    }
                 }
                 break;
-            case MotionEvent.ACTION_UP:
-                action = "ACTION_UP";
+            case MotionEvent.ACTION_POINTER_DOWN:
+                break;
+            case MotionEvent.ACTION_POINTER_UP:
+                if (mCurrentBox != null) {
+                    mCurrentBox.setAngleSet(true);
+                    mCurrentBox = null;
+                }
+                break;
+            default:
                 mCurrentBox = null;
                 break;
-            case MotionEvent.ACTION_CANCEL:
-                action = "ACTION_CANCEL";
-                mCurrentBox = null;
-                break; }
-        Log.i(TAG, action + " at x=" + current.x + ", y=" + current.y);
+        }
         return true;
     }
 
@@ -76,12 +100,15 @@ public class BoxDrawingView extends View {
     protected void onDraw(Canvas canvas) {
         // Fill the background
         canvas.drawPaint(mBackgroundPaint);
-        for (Box box : mBoxen) {
+        for (Box box : mBoxes) {
+            double angle = box.getAngle();
+            canvas.rotate((float) angle, box.getOrigin().x, box.getOrigin().y);
             float left = Math.min(box.getOrigin().x, box.getCurrent().x);
             float right = Math.max(box.getOrigin().x, box.getCurrent().x);
             float top = Math.min(box.getOrigin().y, box.getCurrent().y);
             float bottom = Math.max(box.getOrigin().y, box.getCurrent().y);
             canvas.drawRect(left, top, right, bottom, mBoxPaint);
+            canvas.rotate((float) -angle, box.getOrigin().x, box.getOrigin().y);
         }
     }
 
@@ -91,7 +118,7 @@ public class BoxDrawingView extends View {
         Bundle outState = new Bundle();
         outState.putParcelable(KEY_SUPER_STATE, super.onSaveInstanceState());
         outState.putParcelable(KEY_CURRENT_BOX, mCurrentBox);
-        outState.putParcelableArrayList(KEY_BOXES, (ArrayList<? extends Parcelable>) mBoxen);
+        outState.putParcelableArrayList(KEY_BOXES, (ArrayList<? extends Parcelable>) mBoxes);
         return outState;
     }
 
@@ -100,6 +127,6 @@ public class BoxDrawingView extends View {
         Bundle inState = (Bundle) state;
         super.onRestoreInstanceState(inState.getParcelable(KEY_SUPER_STATE));
         mCurrentBox = inState.getParcelable(KEY_CURRENT_BOX);
-        mBoxen = inState.getParcelableArrayList(KEY_BOXES);
+        mBoxes = inState.getParcelableArrayList(KEY_BOXES);
     }
 }
